@@ -1,0 +1,981 @@
+﻿/* Reset e base */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --primary-bg: #ffffff;
+    --secondary-bg: #f8f9fa;
+    --text-primary: #000000;
+    --text-secondary: #666666;
+    --border-color: #e0e0e0;
+    --accent-color: #000000;
+    --hover-bg: #f0f0f0;
+    --success-color: #000000;
+    --shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background-color: var(--primary-bg);
+    color: var(--text-primary);
+    line-height: 1.6;
+}
+
+/* Layout principal */
+.tecnico-container {
+    display: flex;
+    min-height: 100vh;
+}
+
+/* Sidebar */
+.tecnico-sidebar {
+    width: 280px;
+    background-color: var(--primary-bg);
+    border-right: 1px solid var(--border-color);
+    padding: 30px 20px;
+    display: flex;
+    flex-direction: column;
+}
+
+.tecnico-header {
+    margin-bottom: 40px;
+}
+
+.tecnico-title {
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 5px;
+    color: var(--text-primary);
+}
+
+.tecnico-user {
+    margin-bottom: 30px;
+}
+
+.user-name {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 20px;
+    color: var(--text-primary);
+}
+
+/* Menu de status */
+.status-menu {
+    margin-bottom: 40px;
+}
+
+.status-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.status-item {
+    margin-bottom: 5px;
+}
+
+.status-link {
+    display: block;
+    padding: 12px 16px;
+    color: var(--text-primary);
+    text-decoration: none;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+    font-weight: 500;
+}
+
+    .status-link:hover,
+    .status-link.active {
+        background-color: var(--accent-color);
+        color: var(--primary-bg);
+        border-color: var(--accent-color);
+    }
+
+/* Menu da conta */
+.conta-menu {
+    margin-top: auto;
+}
+
+.conta-list {
+    list-style: none;
+    border-top: 1px solid var(--border-color);
+    padding-top: 20px;
+}
+
+.conta-item {
+    margin-bottom: 8px;
+}
+
+.conta-link {
+    display: block;
+    padding: 12px 16px;
+    color: var(--text-primary);
+    text-decoration: none;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    font-weight: 500;
+}
+
+    .conta-link:hover {
+        background-color: var(--hover-bg);
+    }
+
+/* Área principal */
+.tecnico-main {
+    flex: 1;
+    background-color: var(--primary-bg);
+    padding: 30px;
+    overflow-y: auto;
+}
+
+/* Cabeçalho da seção */
+.section-header {
+    margin-bottom: 30px;
+}
+
+.section-title {
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 10px;
+    color: var(--text-primary);
+}
+
+.section-subtitle {
+    font-size: 16px;
+    color: var(--text-secondary);
+}
+
+/* Lista de chamados */
+.chamados-list {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.chamado-card {
+    background-color: var(--primary-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 20px;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+    .chamado-card:hover {
+        border-color: var(--accent-color);
+        transform: translateY(-2px);
+        box-shadow: var(--shadow);
+    }
+
+.chamado-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 15px;
+}
+
+.chamado-id {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.chamado-status {
+    padding: 4px 12px;
+    background-color: var(--accent-color);
+    color: var(--primary-bg);
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.chamado-descricao {
+    font-size: 15px;
+    color: var(--text-primary);
+    margin-bottom: 15px;
+    line-height: 1.5;
+}
+
+.chamado-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+.chamado-cliente {
+    font-weight: 500;
+}
+
+.chamado-data {
+    color: var(--text-secondary);
+}
+
+/* Tela de atendimento */
+.atendimento-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.atendimento-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.atendimento-info {
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+/* Área do chat */
+.chat-area {
+    max-width: 800px;
+    margin: 0 auto 30px;
+}
+
+.mensagem-cliente {
+    background-color: var(--secondary-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.mensagem-texto {
+    font-size: 15px;
+    line-height: 1.5;
+    color: var(--text-primary);
+    margin-bottom: 10px;
+}
+
+.mensagem-data {
+    font-size: 12px;
+    color: var(--text-secondary);
+    text-align: right;
+}
+
+/* Área de resposta */
+.resposta-area {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.resposta-form {
+    display: flex;
+    gap: 15px;
+    align-items: flex-end;
+}
+
+.resposta-input {
+    flex: 1;
+    padding: 15px 20px;
+    border: 1px solid var(--border-color);
+    border-radius: 25px;
+    font-size: 15px;
+    background-color: var(--primary-bg);
+    color: var(--text-primary);
+    resize: none;
+    min-height: 50px;
+    max-height: 120px;
+    transition: all 0.2s ease;
+}
+
+    .resposta-input:focus {
+        outline: none;
+        border-color: var(--accent-color);
+        box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.1);
+    }
+
+    .resposta-input::placeholder {
+        color: var(--text-secondary);
+    }
+
+.resposta-button {
+    padding: 15px 25px;
+    background-color: var(--accent-color);
+    color: var(--primary-bg);
+    border: none;
+    border-radius: 25px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 100px;
+}
+
+    .resposta-button:hover {
+        background-color: #333333;
+        transform: translateY(-1px);
+    }
+
+/* Estados vazios */
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-secondary);
+}
+
+.empty-icon {
+    font-size: 48px;
+    margin-bottom: 20px;
+    opacity: 0.5;
+}
+
+.empty-text {
+    font-size: 16px;
+    line-height: 1.5;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    .tecnico-container {
+        flex-direction: column;
+    }
+
+    .tecnico-sidebar {
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid var(--border-color);
+        padding: 20px 15px;
+    }
+
+    .tecnico-main {
+        padding: 20px 15px;
+    }
+
+    .status-list {
+        flex-direction: row;
+        overflow-x: auto;
+        gap: 10px;
+    }
+
+    .status-link {
+        white-space: nowrap;
+    }
+
+    .atendimento-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .resposta-form {
+        flex-direction: column;
+    }
+
+    .resposta-button {
+        width: 100%;
+        border-radius: 12px;
+    }
+}
+
+@media (max-width: 480px) {
+    .tecnico-sidebar {
+        padding: 15px 12px;
+    }
+
+    .tecnico-main {
+        padding: 15px 12px;
+    }
+
+    .chamado-header {
+        flex-direction: column;
+        gap: 10px;
+        align-items: flex-start;
+    }
+
+    .chamado-footer {
+        flex-direction: column;
+        gap: 5px;
+        align-items: flex-start;
+    }
+}
+
+/* Utilitários */
+.text-center {
+    text-align: center;
+}
+
+.mb-4 {
+    margin-bottom: 2rem;
+}
+
+/* Animações */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.chamado-card {
+    animation: fadeIn 0.3s ease-out;
+}
+
+/* Scrollbar personalizada */
+.tecnico-main::-webkit-scrollbar {
+    width: 6px;
+}
+
+.tecnico-main::-webkit-scrollbar-track {
+    background: var(--secondary-bg);
+}
+
+.tecnico-main::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 3px;
+}
+
+    .tecnico-main::-webkit-scrollbar-thumb:hover {
+        background: var(--text-secondary);
+    }
+
+
+
+
+
+
+
+
+
+
+/* Modal do Chat */
+.chat-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    padding: 20px;
+}
+
+    .chat-modal.active {
+        display: flex;
+    }
+
+.chat-modal-content {
+    background-color: var(--primary-bg);
+    border-radius: 12px;
+    width: 100%;
+    max-width: 900px;
+    height: 80vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    animation: modalAppear 0.3s ease-out;
+}
+
+@keyframes modalAppear {
+    from {
+        opacity: 0;
+        transform: scale(0.9) translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+/* Header do Chat Modal */
+.chat-modal-header {
+    padding: 20px 30px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: var(--primary-bg);
+}
+
+.chat-modal-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.chat-modal-info {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-top: 5px;
+}
+
+.chat-modal-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: var(--text-primary);
+    padding: 5px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+    .chat-modal-close:hover {
+        background-color: var(--hover-bg);
+    }
+
+/* Corpo do Chat Modal */
+.chat-modal-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.chat-messages-container {
+    flex: 1;
+    padding: 30px;
+    overflow-y: auto;
+    background-color: var(--primary-bg);
+}
+
+.chat-message {
+    margin-bottom: 20px;
+    display: flex;
+    flex-direction: column;
+}
+
+    .chat-message.cliente {
+        align-items: flex-start;
+    }
+
+    .chat-message.tecnico {
+        align-items: flex-end;
+    }
+
+.message-bubble {
+    max-width: 70%;
+    padding: 15px 20px;
+    border-radius: 18px;
+    position: relative;
+    word-wrap: break-word;
+}
+
+.chat-message.cliente .message-bubble {
+    background-color: var(--secondary-bg);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-bottom-left-radius: 4px;
+}
+
+.chat-message.tecnico .message-bubble {
+    background-color: var(--accent-color);
+    color: var(--primary-bg);
+    border-bottom-right-radius: 4px;
+}
+
+.message-content {
+    font-size: 15px;
+    line-height: 1.5;
+}
+
+.message-time {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 5px;
+    text-align: right;
+}
+
+.chat-message.cliente .message-time {
+    text-align: left;
+    color: var(--text-secondary);
+}
+
+/* Input do Chat Modal */
+.chat-input-container {
+    padding: 20px 30px;
+    border-top: 1px solid var(--border-color);
+    background-color: var(--primary-bg);
+}
+
+.chat-input-wrapper {
+    display: flex;
+    gap: 15px;
+    align-items: flex-end;
+}
+
+.chat-input {
+    flex: 1;
+    padding: 15px 20px;
+    border: 1px solid var(--border-color);
+    border-radius: 25px;
+    font-size: 15px;
+    background-color: var(--primary-bg);
+    color: var(--text-primary);
+    resize: none;
+    min-height: 50px;
+    max-height: 120px;
+    transition: all 0.2s ease;
+}
+
+    .chat-input:focus {
+        outline: none;
+        border-color: var(--accent-color);
+        box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.1);
+    }
+
+.chat-send-button {
+    padding: 15px 25px;
+    background-color: var(--accent-color);
+    color: var(--primary-bg);
+    border: none;
+    border-radius: 25px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 100px;
+}
+
+    .chat-send-button:hover {
+        background-color: #333333;
+        transform: translateY(-1px);
+    }
+
+/* Indicador de digitação */
+.typing-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    color: var(--text-secondary);
+    font-size: 14px;
+    padding: 10px 20px;
+}
+
+.typing-dot {
+    width: 6px;
+    height: 6px;
+    background-color: var(--text-secondary);
+    border-radius: 50%;
+    animation: typingAnimation 1.4s infinite ease-in-out;
+}
+
+    .typing-dot:nth-child(1) {
+        animation-delay: -0.32s;
+    }
+
+    .typing-dot:nth-child(2) {
+        animation-delay: -0.16s;
+    }
+
+@keyframes typingAnimation {
+    0%, 80%, 100% {
+        transform: scale(0.8);
+        opacity: 0.5;
+    }
+
+    40% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* Ações do Chat */
+.chat-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.chat-action-button {
+    padding: 10px 20px;
+    border: 1px solid var(--border-color);
+    background-color: var(--primary-bg);
+    color: var(--text-primary);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+    .chat-action-button:hover {
+        background-color: var(--hover-bg);
+    }
+
+    .chat-action-button.primary {
+        background-color: var(--accent-color);
+        color: var(--primary-bg);
+        border-color: var(--accent-color);
+    }
+
+        .chat-action-button.primary:hover {
+            background-color: #333333;
+        }
+
+/* Responsividade do Modal */
+@media (max-width: 768px) {
+    .chat-modal {
+        padding: 10px;
+    }
+
+    .chat-modal-content {
+        height: 90vh;
+        border-radius: 8px;
+    }
+
+    .chat-modal-header {
+        padding: 15px 20px;
+    }
+
+    .chat-messages-container {
+        padding: 20px 15px;
+    }
+
+    .message-bubble {
+        max-width: 85%;
+    }
+
+    .chat-input-container {
+        padding: 15px 20px;
+    }
+}
+
+@media (max-width: 480px) {
+    .chat-modal-content {
+        height: 95vh;
+    }
+
+    .chat-modal-header {
+        padding: 12px 15px;
+    }
+
+    .chat-modal-title {
+        font-size: 18px;
+    }
+
+    .message-bubble {
+        max-width: 90%;
+        padding: 12px 16px;
+    }
+}
+
+
+
+
+
+
+/* Menu IA Assistente */
+
+
+.menu-section {
+    margin-bottom: 25px;
+}
+
+.menu-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 15px;
+    color: var(--text-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.menu-list {
+    list-style: none;
+}
+
+.menu-item {
+    margin-bottom: 8px;
+}
+
+.menu-link {
+    display: block;
+    padding: 10px 15px;
+    color: var(--text-primary);
+    text-decoration: none;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+}
+
+    .menu-link:hover,
+    .menu-link.active {
+        background-color: var(--accent-color);
+        color: var(--primary-bg);
+        border-color: var(--accent-color);
+    }
+
+    .menu-link.active {
+        font-weight: 600;
+    }
+
+/* Submenu */
+.submenu {
+    list-style: none;
+    margin-left: 20px;
+    margin-top: 5px;
+}
+
+.submenu-item {
+    margin-bottom: 5px;
+}
+
+.submenu-link {
+    display: block;
+    padding: 8px 15px;
+    color: var(--text-secondary);
+    text-decoration: none;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    font-size: 14px;
+}
+
+    .submenu-link:hover {
+        background-color: var(--hover-bg);
+        color: var(--text-primary);
+    }
+
+
+
+
+
+/* ✅ ESTILOS PARA OS BOTÕES DE AÇÃO */
+.chat-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+    flex-wrap: wrap;
+}
+
+.chat-action-button {
+    padding: 12px 20px;
+    border: 1px solid #ddd;
+    background-color: #f8f9fa;
+    color: #333;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 14px;
+    font-weight: 500;
+    flex: 1;
+    min-width: 160px;
+    text-align: center;
+}
+
+    .chat-action-button:hover {
+        background-color: #e9ecef;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .chat-action-button.primary {
+        background-color: #dc3545;
+        color: white;
+        border-color: #dc3545;
+    }
+
+        .chat-action-button.primary:hover {
+            background-color: #c82333;
+            border-color: #bd2130;
+        }
+
+/* ✅ ESTILOS PARA AS NOTIFICAÇÕES */
+.connection-status {
+    padding: 6px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    margin-left: 15px;
+}
+
+    .connection-status.connected {
+        background-color: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+
+    .connection-status.disconnected {
+        background-color: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+
+.last-message {
+    font-size: 12px;
+    color: #666;
+    margin-top: 8px;
+    font-style: italic;
+    background-color: #f8f9fa;
+    padding: 4px 8px;
+    border-radius: 4px;
+    border-left: 3px solid #007bff;
+}
+
+/* ✅ ESTILOS PARA OS IDs NUMÉRICOS */
+.chamado-id {
+    font-weight: 700;
+    font-size: 16px;
+    color: #000;
+    background-color: #e9ecef;
+    padding: 2px 8px;
+    border-radius: 4px;
+    display: inline-block;
+}
+
+.chat-modal-info {
+    font-size: 14px;
+    color: #666;
+    margin-top: 5px;
+    font-style: italic;
+}
+
+/* ✅ ESTILOS PARA MENSAGENS DO SISTEMA NO CHAT */
+.system-message {
+    text-align: center;
+    margin: 10px 0;
+    padding: 10px;
+    background-color: #e7f3ff;
+    border-radius: 8px;
+    border-left: 4px solid #007bff;
+    font-style: italic;
+    color: #0056b3;
+}
+
+
+/* Overlay do modal completamente centralizado */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: none; /* ativado via JS */
+    justify-content: center; /* centra horizontal */
+    align-items: center; /* centra vertical */
+    z-index: 9999;
+}
+
+/* Caixa do modal centralizada */
+.modal-content {
+    background: #fff;
+    width: 60%;
+    max-width: 800px;
+    padding: 20px;
+    border-radius: 12px;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0px 4px 20px rgba(0,0,0,0.25);
+}

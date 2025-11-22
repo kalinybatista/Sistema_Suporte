@@ -1,0 +1,378 @@
+﻿@{
+    ViewData["Title"] = "Suporte Técnico - Técnico";
+    Layout = null;
+    var userName = Context.Session.GetString("UserName") ?? "Cliente";
+}
+
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Suporte Técnico - Técnico</title>
+    <link rel="stylesheet" href="~/css/Chat.css" asp-append-version="true" />
+</head>
+<body>
+    <div class="suporte-container">
+        <!-- Sidebar -->
+        <aside class="suporte-sidebar">
+            <button class="menu-toggle" id="menuToggle">☰</button>
+
+            <div class="suporte-header">
+                <h1 class="suporte-title">Suporte Técnico</h1>
+            </div>
+
+            <div class="usuario-info">
+                <div class="user-name">@userName</div>
+            </div>
+
+            <nav class="ia-menu">
+                <div class="menu-section">
+                    <h3 class="menu-title">Atendimento</h3>
+                    <ul class="menu-list">
+                        <li class="menu-item">
+                            <!-- ✅ CORREÇÃO: sem active no ChatIA -->
+                            <a asp-controller="Suporte" asp-action="ChatIA" class="menu-link">Chat com IA</a>
+                        </li>
+                        <li class="menu-item">
+                            <!-- ✅ CORREÇÃO: active no Técnico -->
+                            <a asp-controller="Suporte" asp-action="Chat_Tecnico" class="menu-link active">Técnico</a>
+                        </li>
+                    </ul>
+                </div>
+                <div class="menu-section">
+                    <h3 class="menu-title">Minha conta</h3>
+                    <ul class="menu-list">
+                        <li class="menu-item">
+                            <a asp-controller="Account" asp-action="AlterarEmail" class="menu-link">Alterar email</a>
+                        </li>
+                        <li class="menu-item">
+                            <a asp-controller="Account" asp-action="AlterarSenha" class="menu-link">Alterar senha</a>
+                        </li>
+                        <li class="menu-item">
+                            <a asp-controller="Account" asp-action="Logout" class="menu-link">Sair</a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Área principal -->
+        <main class="suporte-main">
+            <header class="chat-header">
+                <h2 class="chat-title">Atendimento Técnico</h2>
+                <span class="connection-status" id="connectionStatus">Conectando...</span>
+            </header>
+
+            <div class="chat-messages" id="chatMessages">
+                <div class="message-container">
+                    <!-- Mensagens serão carregadas via SignalR -->
+                </div>
+            </div>
+
+            <!-- Área de entrada de mensagens -->
+            <div class="chat-input-container">
+                <div class="chat-input-wrapper">
+                    <textarea class="chat-input" id="messageInput" placeholder="Digite sua mensagem..." rows="1"></textarea>
+                    <button class="send-button" id="sendButton">Enviar</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
+    <script>
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl("/chatHub")
+            .build();
+
+        const userName = "@userName";
+        let isConnected = false;
+
+        // Elementos da UI
+        const chatMessages = document.querySelector('.chat-messages');
+        const messageContainer = document.querySelector('.message-container');
+        const messageInput = document.getElementById('messageInput');
+        const sendButton = document.getElementById('sendButton');
+        const connectionStatus = document.getElementById('connectionStatus');
+
+                const menuToggle = document.getElementById("menuToggle");
+        const sidebar = document.querySelector(".suporte-sidebar");
+
+        menuToggle.addEventListener("click", () => {
+            sidebar.classList.toggle("sidebar-open");
+        });
+
+        // Conectar ao Hub
+        connection.start().then(() => {
+            console.log("Conectado ao SignalR");
+            connectionStatus.textContent = "Conectado";
+            connectionStatus.className = "connection-status connected";
+            isConnected = true;
+
+            // Entrar como cliente
+            connection.invoke("JoinAsClient", userName);
+        }).catch(err => {
+            console.error("Erro na conexão:", err);
+            connectionStatus.textContent = "Desconectado";
+            connectionStatus.className = "connection-status disconnected";
+        });
+
+        // Receber histórico do chat
+        connection.on("ReceiveChatHistory", (messages) => {
+            messageContainer.innerHTML = '';
+            messages.forEach(msg => {
+                addMessageToChat(msg.userName, msg.message, msg.timestamp, !msg.isFromClient);
+            });
+            scrollToBottom();
+        });
+
+        // Receber própria mensagem (confirmação)
+        connection.on("ReceiveOwnMessage", (message, timestamp) => {
+            addMessageToChat("Você", message, timestamp, false);
+        });
+
+        // Receber mensagem do técnico
+        connection.on("ReceiveTechnicianMessage", (userName, message, timestamp) => {
+            addMessageToChat(userName, message, timestamp, true);
+        });
+
+        // Enviar mensagem
+        sendButton.addEventListener('click', sendMessage);
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        function sendMessage() {
+            const message = messageInput.value.trim();
+            if (message && isConnected) {
+                connection.invoke("SendMessageToTechnicians", message)
+                    .catch(err => console.error("Erro ao enviar mensagem:", err));
+
+                messageInput.value = '';
+                messageInput.style.height = 'auto';
+            }
+        }
+
+        function addMessageToChat(sender, message, timestamp, isTechnician) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isTechnician ? 'message-ia' : 'message-user'}`;
+
+            const time = new Date(timestamp).toLocaleTimeString('pt-BR', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+
+            messageDiv.innerHTML = `
+                <div class="message-bubble">
+                    <div class="message-content">${escapeHtml(message)}</div>
+                    <div class="message-time">${time}</div>
+                </div>
+            `;
+
+            messageContainer.appendChild(messageDiv);
+            scrollToBottom();
+        }
+
+        function scrollToBottom() {
+            const chat = document.getElementById("chatMessages");
+            if (chat) {
+                setTimeout(() => {
+                    chat.scrollTop = chat.scrollHeight;
+                }, 50);
+            }
+        }
+
+
+        function escapeHtml(unsafe) {
+            return unsafe
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        // Auto-ajuste do textarea
+        messageInput.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = (this.scrollHeight) + 'px';
+        });
+
+        // Reconexão automática
+        connection.onclose(() => {
+            isConnected = false;
+            connectionStatus.textContent = "Desconectado";
+            connectionStatus.className = "connection-status disconnected";
+
+            setTimeout(() => {
+                connection.start().catch(err => console.error("Erro na reconexão:", err));
+            }, 5000);
+        });
+
+        // Scroll inicial
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+
+
+                // ---------- Expansível: mensagens (toggle) ----------
+        (function() {
+            // Delegate: ao clicar em uma bolha de mensagem, alterna colapsado/expandido
+            const messageContainer = document.getElementById('messageContainer');
+
+            // função utilitária para criar hint quando necessário
+            function attachExpandHint(bubble) {
+                if (bubble.querySelector('.expand-hint')) return;
+                const hint = document.createElement('button');
+                hint.type = 'button';
+                hint.className = 'expand-hint';
+                hint.setAttribute('aria-label', 'Expandir mensagem');
+                hint.innerHTML = '<span class="expand-icon">⋯</span>';
+                hint.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    bubble.classList.toggle('collapsed');
+                });
+                bubble.appendChild(hint);
+            }
+
+            // chamar quando uma nova mensagem for adicionada
+            const originalAddMessage = window.addMessage;
+            if (typeof originalAddMessage === 'function') {
+                window.addMessage = function(text, sender, timestamp) {
+                    originalAddMessage(text, sender, timestamp);
+                    // pegar última message-bubble adicionada e preparar
+                    setTimeout(() => {
+                        const messages = messageContainer.querySelectorAll('.message-bubble');
+                        const bubble = messages[messages.length - 1];
+                        if (!bubble) return;
+                        // se o conteúdo for muito longo, deixamos colapsado por padrão em mobile
+                        const approximateMaxChars = 220;
+                        const plainText = bubble.innerText || bubble.textContent || '';
+                        if (plainText.length > approximateMaxChars && window.innerWidth <= 900) {
+                            bubble.classList.add('collapsed');
+                            attachExpandHint(bubble);
+                        }
+                        // tornar clicável para expandir (acessível)
+                        bubble.setAttribute('tabindex', '0');
+                        bubble.setAttribute('role', 'button');
+                        bubble.setAttribute('aria-pressed', bubble.classList.contains('collapsed') ? 'false' : 'true');
+                        bubble.addEventListener('click', () => {
+                            bubble.classList.toggle('collapsed');
+                            bubble.setAttribute('aria-pressed', bubble.classList.contains('collapsed') ? 'false' : 'true');
+                        });
+                        bubble.addEventListener('keydown', (e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                bubble.click();
+                            }
+                        });
+                    }, 60);
+                };
+            }
+
+            // Se mensagens já estiverem no DOM ao carregar, prepare-as
+            function prepareExistingBubbles() {
+                const bubbles = messageContainer.querySelectorAll('.message-bubble');
+                bubbles.forEach(bubble => {
+                    const plainText = bubble.innerText || bubble.textContent || '';
+                    if (plainText.length > 220 && window.innerWidth <= 900) {
+                        bubble.classList.add('collapsed');
+                        attachExpandHint(bubble);
+                    }
+                    bubble.setAttribute('tabindex', '0');
+                    bubble.setAttribute('role', 'button');
+                    bubble.addEventListener('click', () => bubble.classList.toggle('collapsed'));
+                });
+            }
+
+            prepareExistingBubbles();
+
+            // ---------- Sidebar / hamburger improvements ----------
+            const menuToggle = document.getElementById('menuToggle');
+            const sidebar = document.querySelector('.suporte-sidebar');
+
+            // criar overlay para fechar ao clicar fora
+            let overlay = document.querySelector('.sidebar-overlay');
+            if (!overlay) {
+                overlay = document.createElement('div');
+                overlay.className = 'sidebar-overlay';
+                document.body.appendChild(overlay);
+            }
+
+            function openSidebar() {
+                sidebar.classList.add('open');
+                overlay.classList.add('visible');
+                menuToggle.setAttribute('aria-expanded', 'true');
+            }
+            function closeSidebar() {
+                sidebar.classList.remove('open');
+                overlay.classList.remove('visible');
+                menuToggle.setAttribute('aria-expanded', 'false');
+            }
+
+            menuToggle.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (sidebar.classList.contains('open')) closeSidebar();
+                else openSidebar();
+            });
+
+            overlay.addEventListener('click', closeSidebar);
+
+            // fechar sidebar ao redimensionar para desktop
+            window.addEventListener('resize', () => {
+                if (window.innerWidth > 900) {
+                    sidebar.classList.remove('open');
+                    overlay.classList.remove('visible');
+                    menuToggle.setAttribute('aria-expanded', 'false');
+                }
+            });
+
+            // melhorar comportamento do textarea em mobile: rolar input para visibilidade quando focado
+            const chatInput = document.getElementById('chatInput') || document.getElementById('messageInput');
+            if (chatInput) {
+                chatInput.addEventListener('focus', () => {
+                    setTimeout(() => {
+                        chatInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }, 300);
+                });
+            }
+        })();
+
+
+    </script>
+
+    <style>
+        .connection-status {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 15px;
+        }
+
+            .connection-status.connected {
+                background-color: #d4edda;
+                color: #155724;
+            }
+
+            .connection-status.disconnected {
+                background-color: #f8d7da;
+                color: #721c24;
+            }
+
+        .usuario-info {
+            margin-bottom: 20px;
+            padding: 10px;
+            background-color: var(--secondary-bg);
+            border-radius: 6px;
+        }
+
+        .user-name {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+    </style>
+</body>
+</html>

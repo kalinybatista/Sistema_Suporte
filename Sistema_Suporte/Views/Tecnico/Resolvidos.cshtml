@@ -1,0 +1,430 @@
+﻿@model List<Sistema_Suporte.Controllers.ChamadoResolvidoViewModel>
+@{
+    ViewData["Title"] = "Chamados Resolvidos";
+    Layout = null;
+    var technicianName = Context.Session.GetString("UserName") ?? "Técnico";
+}
+
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chamados Resolvidos</title>
+    <link rel="stylesheet" href="~/css/tecnico.css" asp-append-version="true" />
+</head>
+<body>
+    <div class="tecnico-container">
+        <!-- Sidebar -->
+        <aside class="tecnico-sidebar">
+            <div class="tecnico-header">
+                <h1 class="tecnico-title">Painel do Técnico</h1>
+            </div>
+
+            <div class="tecnico-user">
+                <div class="user-name">@technicianName</div>
+            </div>
+
+            <nav class="status-menu">
+                <ul class="status-list">
+                    <li class="status-item">
+                        <a asp-controller="Tecnico" asp-action="Index" class="status-link">Em Andamento</a>
+                    </li>
+                    <li class="status-item">
+                        <a asp-controller="Tecnico" asp-action="Resolvidos" class="status-link active">Resolvidos</a>
+                    </li>
+                </ul>
+            </nav>
+
+            <div class="menu-section">
+                <h3 class="menu-title">Minha conta</h3>
+                <ul class="menu-list">
+                    <li class="menu-item">
+                        <a asp-controller="Account" asp-action="AlterarEmail" class="menu-link">Alterar email</a>
+                    </li>
+                    <li class="menu-item">
+                        <a asp-controller="Account" asp-action="AlterarSenha" class="menu-link">Alterar senha</a>
+                    </li>
+                    <li class="menu-item">
+                        <a asp-controller="Account" asp-action="Logout" class="menu-link">Sair</a>
+                    </li>
+                </ul>
+            </div>
+        </aside>
+
+        <!-- Área principal -->
+        <main class="tecnico-main">
+            <div class="section-header">
+                <h2 class="section-title">Chamados Resolvidos</h2>
+                <p class="section-subtitle">Histórico de chamados finalizados e resolvidos</p>
+                <div class="stats-container">
+                    <span class="stat-badge">Total: @Model.Count</span>
+                    <span class="stat-badge resolved">Resolvidos: @Model.Count(c => c.Status == "Resolvido")</span>
+                    <span class="stat-badge finished">Finalizados: @Model.Count(c => c.Status == "Finalizado")</span>
+                </div>
+            </div>
+
+            <div class="chamados-list" id="chamadosResolvidos">
+                @if (Model.Any())
+                {
+                    foreach (var chamado in Model)
+                    {
+                        <div class="chamado-card resolved-card" onclick="abrirDetalhesChamado(@chamado.IdChamado)">
+                            <div class="chamado-header">
+                                <div class="chamado-id">#@(chamado.ConversationId?.ToString("000") ?? "000")</div>
+                                <div class="chamado-status @(chamado.Status == "Resolvido" ? "status-resolvido" : "status-finalizado")">
+                                    @chamado.Status
+                                </div>
+                            </div>
+                            <div class="chamado-descricao">
+                                @chamado.Descricao
+                            </div>
+                            <div class="chamado-info">
+                                <div class="info-item">
+                                    <strong>Cliente:</strong> @chamado.NomeCliente
+                                </div>
+                                @if (!string.IsNullOrEmpty(chamado.NomeTecnico) && chamado.NomeTecnico != "Não atribuído")
+                                {
+                                    <div class="info-item">
+                                        <strong>Técnico:</strong> @chamado.NomeTecnico
+                                    </div>
+                                }
+                                <div class="info-item">
+                                    <strong>Aberto em:</strong> @chamado.DataAbertura.ToString("dd/MM/yyyy HH:mm")
+                                </div>
+                                <div class="info-item">
+                                    <strong>Atualizado em:</strong> @chamado.DataAtualizacao.ToString("dd/MM/yyyy HH:mm")
+                                </div>
+                            </div>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="empty-state">
+                        <div class="empty-icon">📋</div>
+                        <div class="empty-text">Nenhum chamado resolvido encontrado</div>
+                        <p class="empty-subtext">Os chamados marcados como resolvidos aparecerão aqui automaticamente.</p>
+                    </div>
+                }
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal de Detalhes do Chamado -->
+    <div class="modal-overlay" id="detalhesModal" style="display: none;">
+        <div class="modal-content large-modal">
+            <div class="modal-header">
+                <h3>Detalhes do Chamado</h3>
+                <button class="modal-close" id="detalhesClose">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="detalhesConteudo">
+                    <!-- Conteúdo será carregado via JavaScript -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" id="fecharDetalhes">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Navegação entre status
+            const statusLinks = document.querySelectorAll('.status-link');
+
+            statusLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    if (!this.classList.contains('active')) {
+                        // Remove active de todos
+                        statusLinks.forEach(l => l.classList.remove('active'));
+                        // Adiciona active no clicado
+                        this.classList.add('active');
+                    }
+                });
+            });
+
+            // ✅ Elementos do Modal
+            const detalhesModal = document.getElementById('detalhesModal');
+            const detalhesClose = document.getElementById('detalhesClose');
+            const fecharDetalhes = document.getElementById('fecharDetalhes');
+            const detalhesConteudo = document.getElementById('detalhesConteudo');
+
+            // ✅ Fechar Modal
+            detalhesClose.addEventListener('click', fecharModalDetalhes);
+            fecharDetalhes.addEventListener('click', fecharModalDetalhes);
+            detalhesModal.addEventListener('click', function(e) {
+                if (e.target === detalhesModal) {
+                    fecharModalDetalhes();
+                }
+            });
+
+            function fecharModalDetalhes() {
+                detalhesModal.style.display = 'none';
+            }
+        });
+
+        // ✅ Função para abrir detalhes do chamado
+        function abrirDetalhesChamado(chamadoId) {
+
+            const detalhesModal = document.getElementById('detalhesModal');
+            const detalhesConteudo = document.getElementById('detalhesConteudo');
+
+            detalhesModal.style.display = 'flex';
+
+            detalhesConteudo.innerHTML = `
+                <div class="detalhes-loading">
+                    <p>Carregando...</p>
+                </div>
+            `;
+
+            fetch(`/Tecnico/DetalhesChamado?id=${chamadoId}`)
+                .then(response => response.json())
+                .then(data => {
+
+                    if (data.erro) {
+                        detalhesConteudo.innerHTML = `<p>${data.erro}</p>`;
+                        return;
+                    }
+
+                    // 🔥 CORREÇÃO AQUI: usar data.mensagens (camelCase)
+                    let mensagens = data.mensagens || [];
+
+                    let mensagensHTML = "";
+
+                    if (mensagens.length === 0) {
+                        mensagensHTML = "<p>Nenhuma mensagem registrada.</p>";
+                    } else {
+                        mensagensHTML = mensagens.map(m => `
+                            <div class="mensagem-item ${m.remetente === "Sistema" ? "sistema" : ""}">
+                                <strong>${m.remetente}:</strong> ${m.texto}
+                                <div class="mensagem-data">${m.data}</div>
+                            </div>
+                        `).join("");
+                    }
+
+                    detalhesConteudo.innerHTML = `
+                        <div class="detalhes-chamado">
+
+                            <div class="detalhes-section">
+                                <h4>Informações do Chamado</h4>
+                                <p><strong>ID:</strong> #${String(data.id).padStart(3, '0')}</p>
+                                <p><strong>Status:</strong> ${data.status}</p>
+                                <p><strong>Cliente:</strong> ${data.cliente}</p>
+                                <p><strong>Técnico:</strong> ${data.tecnico}</p>
+                                <p><strong>Abertura:</strong> ${data.abertura}</p>
+                                <p><strong>Atualização:</strong> ${data.atualizacao}</p>
+                            </div>
+
+                            <div class="detalhes-section">
+                                <h4>Descrição</h4>
+                                <p>${data.descricao}</p>
+                            </div>
+
+                            <div class="detalhes-section">
+                                <h4>Histórico de Mensagens</h4>
+                                <div class="mensagens-list">
+                                    ${mensagensHTML}
+                                </div>
+                            </div>
+
+                        </div>
+                    `;
+                });
+        }
+
+
+
+        // ✅ Função para recarregar a página (atualizar lista)
+        function recarregarChamados() {
+            location.reload();
+        }
+
+        // ✅ Atualizar automaticamente a cada 30 segundos
+        setInterval(recarregarChamados, 30000);
+    </script>
+
+    <style>
+        /* ✅ ESTILOS PARA CHAMADOS RESOLVIDOS */
+        .stats-container {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+
+        .stat-badge {
+            padding: 6px 12px;
+            background-color: #e9ecef;
+            color: #495057;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+            .stat-badge.resolved {
+                background-color: #d4edda;
+                color: #155724;
+            }
+
+            .stat-badge.finished {
+                background-color: #e2e3e5;
+                color: #383d41;
+            }
+
+        .resolved-card {
+            border-left: 4px solid #28a745;
+            transition: all 0.3s ease;
+        }
+
+            .resolved-card:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(40, 167, 69, 0.2);
+            }
+
+        .status-resolvido {
+            background-color: #28a745 !important;
+            color: white;
+        }
+
+        .status-finalizado {
+            background-color: #6c757d !important;
+            color: white;
+        }
+
+        .chamado-info {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .info-item {
+            font-size: 13px;
+            margin-bottom: 4px;
+            color: #666;
+        }
+
+            .info-item strong {
+                color: #333;
+            }
+
+        /* ✅ ESTILOS DO MODAL DE DETALHES */
+        .large-modal {
+            max-width: 700px;
+            max-height: 80vh;
+        }
+
+        .detalhes-chamado {
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+
+        .detalhes-section {
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+            .detalhes-section:last-child {
+                border-bottom: none;
+            }
+
+            .detalhes-section h4 {
+                margin-bottom: 10px;
+                color: #333;
+                font-size: 16px;
+            }
+
+        .detalhes-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+        }
+
+        .detalhes-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #f8f9fa;
+        }
+
+            .detalhes-item:last-child {
+                border-bottom: none;
+            }
+
+        .status-badge {
+            padding: 4px 8px;
+            background-color: #28a745;
+            color: white;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .mensagens-list {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 10px;
+        }
+
+        .mensagem-item {
+            padding: 8px;
+            margin-bottom: 8px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            border-left: 3px solid #007bff;
+        }
+
+            .mensagem-item.sistema {
+                border-left-color: #6c757d;
+                background-color: #e9ecef;
+            }
+
+            .mensagem-item strong {
+                color: #495057;
+            }
+
+        .detalhes-loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        /* ✅ ESTILOS PARA ESTADO VAZIO */
+        .empty-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .empty-subtext {
+            color: #666;
+            margin-top: 8px;
+            font-size: 14px;
+        }
+
+        /* ✅ RESPONSIVIDADE */
+        .media (max-width: 768px) {
+            .stats-container
+
+        {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .detalhes-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .large-modal {
+            margin: 10px;
+            width: calc(100% - 20px);
+        }
+
+        }
+    </style>
+</body>
+</html>

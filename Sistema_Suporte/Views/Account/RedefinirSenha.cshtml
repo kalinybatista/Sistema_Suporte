@@ -1,0 +1,89 @@
+﻿@model RedefinirSenhaModel
+@{
+    ViewData["Title"] = "Criar nova senha";
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Redefinir Senha</title>
+    <link rel="stylesheet" href="~/css/auth.css" />
+</head>
+
+<body class="auth-body">
+
+    <div class="container">
+        <div class="row justify-content-center align-items-center min-vh-100">
+
+            <div class="col-md-5 col-lg-4">
+                <div class="auth-card">
+
+                    <div class="text-center mb-4">
+                        <h2 class="auth-title">Criar nova senha</h2>
+                        <p class="text-muted">Digite sua nova senha abaixo</p>
+                    </div>
+
+                    <!-- Sucesso -->
+                    @if (TempData["Sucesso"] != null)
+                    {
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            @TempData["Sucesso"]
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    }
+
+                    <!-- Erro -->
+                    @if (TempData["Erro"] != null)
+                    {
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            @TempData["Erro"]
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    }
+
+                    <form asp-action="RedefinirSenha" method="post">
+                        <input type="hidden" asp-for="Token" />
+
+                        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+                        <!-- Nova Senha -->
+                        <div class="mb-4">
+                            <label asp-for="NovaSenha" class="form-label auth-label">Nova Senha</label>
+                            <input asp-for="NovaSenha" type="password" class="form-control auth-input" placeholder="••••••••" />
+                            <span asp-validation-for="NovaSenha" class="text-danger"></span>
+                        </div>
+
+                        <!-- Confirmar Senha -->
+                        <div class="mb-4">
+                            <label asp-for="ConfirmarSenha" class="form-label auth-label">Confirmar Senha</label>
+                            <input asp-for="ConfirmarSenha" type="password" class="form-control auth-input" placeholder="••••••••" />
+                            <span asp-validation-for="ConfirmarSenha" class="text-danger"></span>
+                        </div>
+
+                        <!-- Botão -->
+                        <div class="d-grid mb-3">
+                            <button type="submit" class="btn btn-primary auth-btn">
+                                Redefinir Senha
+                            </button>
+                        </div>
+
+                        <div class="text-center">
+                            <a asp-action="Login" class="auth-link">← Voltar para Login</a>
+                        </div>
+
+                    </form>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script src="~/lib/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <partial name="_ValidationScriptsPartial" />
+
+</body>
+</html>

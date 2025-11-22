@@ -1,0 +1,38 @@
+﻿@{
+    ViewData["Title"] = "Chat em Tempo Real";
+}
+
+<h2>Chat em Tempo Real</h2>
+
+<div class="container">
+    <input type="text" id="userInput" placeholder="Seu nome" />
+    <input type="text" id="messageInput" placeholder="Digite sua mensagem..." />
+    <button id="sendButton">Enviar</button>
+</div>
+
+<ul id="messagesList"></ul>
+
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.0/signalr.min.js"></script>
+    <script>
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl("/chatHub")
+            .build();
+
+        connection.on("ReceiveMessage", (user, message) => {
+            const li = document.createElement("li");
+            li.textContent = `${user}: ${message}`;
+            document.getElementById("messagesList").appendChild(li);
+        });
+
+        connection.start().catch(err => console.error(err.toString()));
+
+        document.getElementById("sendButton").addEventListener("click", () => {
+            const user = document.getElementById("userInput").value;
+            const message = document.getElementById("messageInput").value;
+            connection.invoke("SendMessage", user, message)
+                .catch(err => console.error(err.toString()));
+            document.getElementById("messageInput").value = "";
+        });
+    </script>
+}

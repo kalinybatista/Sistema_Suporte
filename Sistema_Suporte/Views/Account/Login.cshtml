@@ -1,0 +1,80 @@
+﻿@model LoginModel
+@{
+    ViewData["Title"] = "Login";
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login - Sistema Assistente</title>
+    <link rel="stylesheet" href="~/css/auth.css" />
+</head>
+<body class="auth-body">
+    <div class="container">
+        <div class="row justify-content-center align-items-center min-vh-100">
+            <div class="col-md-5 col-lg-4">
+                <div class="auth-card">
+                    <!-- Cabeçalho -->
+                    <div class="auth-header">
+                        <h1 class="auth-title">LOGIN</h1>
+                    </div>
+
+                    <!-- Mensagens -->
+                    @if (TempData["Sucesso"] != null)
+                    {
+                        <div class="alert alert-success alert-dismissible">
+                            @TempData["Sucesso"]
+                            <button type="button" class="btn-close" onclick="this.parentElement.style.display='none'">×</button>
+                        </div>
+                    }
+
+                    @if (TempData["Erro"] != null)
+                    {
+                        <div class="alert alert-danger alert-dismissible">
+                            @TempData["Erro"]
+                            <button type="button" class="btn-close" onclick="this.parentElement.style.display='none'">×</button>
+                        </div>
+                    }
+
+                    <!-- Formulário -->
+                    <form asp-controller="Account" asp-action="Login" method="post" class="auth-form">
+                        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+                        <!-- Email -->
+                        <div class="form-group">
+                            <label class="form-label">Email</label>
+                            <input type="email" asp-for="Email" class="form-input" placeholder="hello@email.com" />
+                            <span asp-validation-for="Email" class="text-danger"></span>
+                        </div>
+
+                        <!-- Senha -->
+                        <div class="form-group">
+                            <label class="form-label">Senha</label>
+                            <input type="password" asp-for="Senha" class="form-input" placeholder="***********" />
+                            <span asp-validation-for="Senha" class="text-danger"></span>
+                        </div>
+
+                        <!-- Esqueceu senha -->
+                        <div class="form-options">
+                            <a class="form-link" asp-controller="Account" asp-action="RecuperarSenha">Esqueceu senha?</a>
+                        </div>
+
+                        <!-- Botão Login -->
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary btn-block">Login</button>
+                        </div>
+
+                        <!-- Criar conta -->
+                        <div class="form-footer">
+                            <a class="btn btn-secondary btn-block" asp-controller="Account" asp-action="Registrar">Criar uma conta</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

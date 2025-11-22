@@ -1,0 +1,100 @@
+﻿@model AlterarSenhaModel
+@{
+    ViewData["Title"] = "Alterar Senha";
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Alterar Senha</title>
+    <link rel="stylesheet" href="~/css/auth.css" />
+</head>
+
+<body class="auth-body">
+
+    <div class="container">
+        <div class="row justify-content-center align-items-center min-vh-100">
+            <div class="col-md-5 col-lg-4">
+
+                <div class="auth-card">
+
+                    <div class="text-center mb-4">
+                        <h2 class="auth-title">Alterar Senha</h2>
+                        <p class="text-muted">Atualize a senha da sua conta</p>
+                    </div>
+
+                    <!-- Sucesso -->
+                    @if (TempData["Sucesso"] != null)
+                    {
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            @TempData["Sucesso"]
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    }
+
+                    <!-- Erro -->
+                    @if (TempData["Erro"] != null)
+                    {
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            @TempData["Erro"]
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    }
+
+                    <form asp-action="AlterarSenha" method="post">
+
+                        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+                        <!-- Senha atual -->
+                        <div class="mb-3">
+                            <label asp-for="SenhaAtual" class="form-label auth-label">Senha atual</label>
+                            <input asp-for="SenhaAtual" type="password" class="form-control auth-input" placeholder="••••••" />
+                            <span asp-validation-for="SenhaAtual" class="text-danger"></span>
+                        </div>
+
+                        <!-- Nova senha -->
+                        <div class="mb-3">
+                            <label asp-for="NovaSenha" class="form-label auth-label">Nova senha</label>
+                            <input asp-for="NovaSenha" type="password" class="form-control auth-input" placeholder="••••••" />
+                            <span asp-validation-for="NovaSenha" class="text-danger"></span>
+                        </div>
+
+                        <!-- Confirmar -->
+                        <div class="mb-4">
+                            <label asp-for="ConfirmarSenha" class="form-label auth-label">Confirmar senha</label>
+                            <input asp-for="ConfirmarSenha" type="password" class="form-control auth-input" placeholder="••••••" />
+                            <span asp-validation-for="ConfirmarSenha" class="text-danger"></span>
+                        </div>
+
+                        <div class="d-grid mb-3">
+                            <button type="submit" class="btn btn-primary auth-btn">Salvar Alterações</button>
+                        </div>
+
+                        <div class="text-center">
+                            @if (ViewBag.UserType == "Tecnico")
+                            {
+                                <a href="/Tecnico/Index" class="auth-link">← Voltar</a>
+                            }
+                            else
+                            {
+                                <a href="/Suporte/ChatIA" class="auth-link">← Voltar</a>
+                            }
+                        </div>
+
+
+                    </form>
+
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script src="~/lib/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <partial name="_ValidationScriptsPartial" />
+
+</body>
+</html>

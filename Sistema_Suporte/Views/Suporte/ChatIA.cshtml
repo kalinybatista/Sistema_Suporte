@@ -1,0 +1,497 @@
+﻿@{
+    ViewData["Title"] = "Suporte Técnico - IA Assistente";
+    Layout = null;
+    var userName = Context.Session.GetString("UserName") ?? "Cliente";
+}
+
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Suporte Técnico - IA Assistente</title>
+    <link rel="stylesheet" href="~/css/Chat.css" asp-append-version="true" />
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js"
+            integrity="sha512-jX1LbY0QBe3+0CkOk0A6RwPRnZ0Jfz2Jq6R9nM7Q7A5A5J5tL0DClqL0Q9f+Znl7zQJzq6R1n9U1n1e1O1Q=="
+            crossorigin="anonymous"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.0.10/marked.min.js"></script>
+
+</head>
+<body>
+    <div class="suporte-container">
+        <!-- Sidebar -->
+        <aside class="suporte-sidebar">
+            <button class="menu-toggle" id="menuToggle">☰</button>
+            <div class="suporte-header">
+                <h1 class="suporte-title">Suporte Técnico</h1>
+            </div>
+
+            <div class="usuario-info">
+                <div class="user-name">@userName</div>
+            </div>
+
+            <nav class="ia-menu">
+                <div class="menu-section">
+                    <h3 class="menu-title">Atendimento</h3>
+                    <ul class="menu-list">
+                        <li class="menu-item">
+                            <a asp-controller="Suporte" asp-action="ChatIA" class="menu-link active">Chat com IA</a>
+                        </li>
+                        <li class="menu-item">
+                            <a asp-controller="Suporte" asp-action="Chat_Tecnico" class="menu-link">Técnico</a>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="menu-section">
+                    <h3 class="menu-title">Minha conta</h3>
+                    <ul class="menu-list">
+                        <li class="menu-item">
+                            <a asp-controller="Account" asp-action="AlterarEmail" class="menu-link">Alterar email</a>
+                        </li>
+                        <li class="menu-item">
+                            <a asp-controller="Account" asp-action="AlterarSenha" class="menu-link">Alterar senha</a>
+                        </li>
+                        <li class="menu-item">
+                            <a asp-controller="Account" asp-action="Logout" class="menu-link">Sair</a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Área Principal do Chat -->
+        <main class="suporte-main">
+            <header class="chat-header">
+                <h2 class="chat-title">Atendimento com IA</h2>
+                <div class="chat-status">
+                    <span class="status-indicator" id="statusIndicator"></span>
+                    <span class="status-text" id="statusText">Carregando...</span>
+                </div>
+            </header>
+
+            <div class="chat-messages" id="chatMessages">
+                <div class="message-container" id="messageContainer">
+                    <div class="message message-ia">
+                        <div class="message-bubble">
+                            <div class="message-content">Iniciando chat com IA...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Área de entrada de mensagens -->
+            <div class="chat-input-container">
+                <div class="chat-input-wrapper">
+                    <textarea class="chat-input" id="chatInput" placeholder="Carregando..." rows="1" disabled></textarea>
+                    <button class="send-button" id="sendButton" type="button" disabled>Enviar</button>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log("🚀 Chat IA - Iniciando...");
+
+            // Elementos DOM
+            const chatInput = document.getElementById('chatInput');
+            const sendButton = document.getElementById('sendButton');
+            const messageContainer = document.getElementById('messageContainer');
+            const statusIndicator = document.getElementById('statusIndicator');
+            const statusText = document.getElementById('statusText');
+
+                    const menuToggle = document.getElementById("menuToggle");
+        const sidebar = document.querySelector(".suporte-sidebar");
+
+        menuToggle.addEventListener("click", () => {
+            sidebar.classList.toggle("sidebar-open");
+        });
+
+            let connection = null;
+            let isConnected = false;
+            let isSending = false;
+
+            // ✅ VERIFICAR SIGNALR
+            if (typeof signalR === 'undefined') {
+                console.error("❌ SignalR não carregado");
+                showError("Erro: SignalR não carregou. Recarregue a página.");
+                return;
+            }
+
+            console.log("✅ SignalR carregado");
+
+            // ✅ INICIAR CONEXÃO
+            initializeConnection();
+
+            function initializeConnection() {
+                console.log("🔗 Conectando ao Hub...");
+
+                try {
+                    connection = new signalR.HubConnectionBuilder()
+                        .withUrl("/chatHub")
+                        .withAutomaticReconnect([0, 2000, 5000, 10000])
+                        .build();
+
+                    // ✅ CONFIGURAR EVENTOS
+                    connection.on("ReceiveIAChatHistory", (messages) => {
+                        console.log("📨 Histórico recebido:", messages);
+                        displayChatHistory(messages);
+                    });
+
+                    connection.on("ReceiveIAMessage", (message, timestamp) => {
+                        console.log("🤖 Resposta da IA:", message);
+                        hideTypingIndicator();
+                        addMessage(message, 'ia', timestamp);
+                    });
+
+                    connection.on("ReceiveOwnMessage", (message, timestamp) => {
+                        console.log("👤 Minha mensagem:", message);
+                        // ✅ NÃO ADICIONAR A MENSAGEM AQUI - já foi adicionada no sendMessage
+                    });
+
+                    connection.on("ReceiveIATyping", (isTyping) => {
+                        console.log("✍️ IA digitando:", isTyping);
+                        if (isTyping) {
+                            showTypingIndicator();
+                        } else {
+                            hideTypingIndicator();
+                        }
+                    });
+
+                    // ✅ INICIAR CONEXÃO
+                    connection.start()
+                        .then(() => {
+                            console.log("✅✅✅ CONECTADO!");
+                            isConnected = true;
+                            updateStatus(true, "Conectado");
+
+                            const userName = "@userName";
+                            console.log("👤 Entrando como:", userName);
+                            return connection.invoke("JoinAsClientIA", userName);
+                        })
+                        .then(() => {
+                            console.log("🎉 Chat IA iniciado!");
+                        })
+                        .catch(error => {
+                            console.error("❌ Erro na conexão:", error);
+                            updateStatus(false, "Erro de conexão");
+                            addMessage("Erro ao conectar com o servidor.", 'error', new Date());
+                        });
+
+                } catch (error) {
+                    console.error("❌ Erro ao criar conexão:", error);
+                    updateStatus(false, "Erro: " + error.message);
+                }
+            }
+
+            function updateStatus(connected, message) {
+                isConnected = connected;
+
+                if (connected) {
+                    statusIndicator.className = 'status-indicator online';
+                    statusText.textContent = message;
+                    sendButton.disabled = false;
+                    chatInput.disabled = false;
+                    chatInput.placeholder = "Digite sua mensagem...";
+                } else {
+                    statusIndicator.className = 'status-indicator offline';
+                    statusText.textContent = message;
+                    sendButton.disabled = true;
+                    chatInput.disabled = true;
+                    chatInput.placeholder = "Desconectado...";
+                }
+            }
+
+            function displayChatHistory(messages) {
+                console.log("🔄 Carregando histórico...");
+                messageContainer.innerHTML = '';
+
+                if (messages && messages.length > 0) {
+                    messages.forEach(msg => {
+                        const sender = msg.isFromClient ? 'user' : 'ia';
+                        addMessage(msg.message, sender, msg.timestamp);
+                    });
+                }
+                scrollToBottom();
+            }
+
+        function addMessage(text, sender, timestamp) {
+                   const messageDiv = document.createElement('div');
+                   messageDiv.className = `message message-${sender}`;
+
+                   const time = new Date(timestamp).toLocaleTimeString('pt-BR', {
+                       hour: '2-digit',
+                       minute: '2-digit'
+                   });
+
+                   // ✅ NOVO: Lógica de conversão de Markdown para HTML
+                   let contentToDisplay = text;
+
+                   // Aplica a conversão de Markdown para HTML apenas se a mensagem for da IA e a biblioteca estiver carregada.
+                   if (sender === 'ia' && typeof marked !== 'undefined') {
+                       // O marked.parse converte **negrito**, *lista*, e ### títulos
+                       contentToDisplay = marked.parse(text);
+                   }
+
+                   messageDiv.innerHTML = `
+                       <div class="message-bubble">
+                           <div class="message-content">${contentToDisplay}</div>
+                           <div class="message-time">${time}</div>
+                       </div>
+                   `;
+
+                   messageContainer.appendChild(messageDiv);
+                   scrollToBottom();
+               }
+
+            function showTypingIndicator() {
+                hideTypingIndicator();
+
+                const typingDiv = document.createElement('div');
+                typingDiv.id = 'typingIndicator';
+                typingDiv.className = 'message message-ia typing';
+                typingDiv.innerHTML = `
+                    <div class="message-bubble">
+                        <div class="message-content">
+                            <div class="typing-dots">
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                messageContainer.appendChild(typingDiv);
+                scrollToBottom();
+            }
+
+            function hideTypingIndicator() {
+                const typingIndicator = document.getElementById('typingIndicator');
+                if (typingIndicator) {
+                    typingIndicator.remove();
+                }
+            }
+
+        function scrollToBottom() {
+            const chat = document.getElementById("chatMessages");
+            if (chat) {
+                setTimeout(() => {
+                    chat.scrollTop = chat.scrollHeight;
+                }, 50);
+            }
+        }
+
+
+            function showError(message) {
+                const errorDiv = document.createElement('div');
+                errorDiv.style.cssText = `
+                    color: #721c24;
+                    background-color: #f8d7da;
+                    border: 1px solid #f5c6cb;
+                    padding: 12px;
+                    margin: 10px;
+                    border-radius: 5px;
+                    text-align: center;
+                    font-weight: bold;
+                `;
+                errorDiv.innerHTML = `❌ ${message}`;
+                document.body.prepend(errorDiv);
+
+                setTimeout(() => errorDiv.remove(), 5000);
+            }
+
+            // ✅ FUNÇÃO ÚNICA PARA ENVIAR MENSAGEM
+            function sendMessage() {
+                const message = chatInput.value.trim();
+
+                // ✅ PREVENIR DUPLO ENVIO
+                if (!message || !isConnected || isSending) {
+                    return;
+                }
+
+                isSending = true;
+                sendButton.disabled = true;
+
+                console.log("📤 Enviando mensagem para IA:", message);
+
+                // ✅ ADICIONAR MENSAGEM DO USUÁRIO APENAS UMA VEZ
+                addMessage(message, 'user', new Date());
+                chatInput.value = '';
+                resetTextareaHeight();
+
+                // ✅ ENVIAR PARA IA
+                connection.invoke("SendMessageToIA", message)
+                    .then(() => {
+                        console.log("✅ Mensagem enviada com sucesso");
+                    })
+                    .catch(err => {
+                        console.error("❌ Erro ao enviar:", err);
+                        addMessage("Erro ao enviar mensagem.", 'error', new Date());
+                    })
+                    .finally(() => {
+                        // ✅ REATIVAR BOTÃO APÓS 1 SEGUNDO
+                        setTimeout(() => {
+                            isSending = false;
+                            sendButton.disabled = false;
+                            if (chatInput) chatInput.focus();
+                        }, 1000);
+                    });
+            }
+
+            function resetTextareaHeight() {
+                if (chatInput) {
+                    chatInput.style.height = 'auto';
+                }
+            }
+
+            // ✅ EVENT LISTENERS
+            sendButton.addEventListener('click', sendMessage);
+
+            chatInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+
+            chatInput.addEventListener('input', function() {
+                this.style.height = 'auto';
+                this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+            });
+
+            // Focar no input
+            setTimeout(() => {
+                if (chatInput && isConnected) chatInput.focus();
+            }, 1000);
+        });
+
+                // ---------- Expansível: mensagens (toggle) ----------
+        (function() {
+            // Delegate: ao clicar em uma bolha de mensagem, alterna colapsado/expandido
+            const messageContainer = document.getElementById('messageContainer');
+
+            // função utilitária para criar hint quando necessário
+            function attachExpandHint(bubble) {
+                if (bubble.querySelector('.expand-hint')) return;
+                const hint = document.createElement('button');
+                hint.type = 'button';
+                hint.className = 'expand-hint';
+                hint.setAttribute('aria-label', 'Expandir mensagem');
+                hint.innerHTML = '<span class="expand-icon">⋯</span>';
+                hint.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    bubble.classList.toggle('collapsed');
+                });
+                bubble.appendChild(hint);
+            }
+
+            // chamar quando uma nova mensagem for adicionada
+            const originalAddMessage = window.addMessage;
+            if (typeof originalAddMessage === 'function') {
+                window.addMessage = function(text, sender, timestamp) {
+                    originalAddMessage(text, sender, timestamp);
+                    // pegar última message-bubble adicionada e preparar
+                    setTimeout(() => {
+                        const messages = messageContainer.querySelectorAll('.message-bubble');
+                        const bubble = messages[messages.length - 1];
+                        if (!bubble) return;
+                        // se o conteúdo for muito longo, deixamos colapsado por padrão em mobile
+                        const approximateMaxChars = 220;
+                        const plainText = bubble.innerText || bubble.textContent || '';
+                        if (plainText.length > approximateMaxChars && window.innerWidth <= 900) {
+                            bubble.classList.add('collapsed');
+                            attachExpandHint(bubble);
+                        }
+                        // tornar clicável para expandir (acessível)
+                        bubble.setAttribute('tabindex', '0');
+                        bubble.setAttribute('role', 'button');
+                        bubble.setAttribute('aria-pressed', bubble.classList.contains('collapsed') ? 'false' : 'true');
+                        bubble.addEventListener('click', () => {
+                            bubble.classList.toggle('collapsed');
+                            bubble.setAttribute('aria-pressed', bubble.classList.contains('collapsed') ? 'false' : 'true');
+                        });
+                        bubble.addEventListener('keydown', (e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                bubble.click();
+                            }
+                        });
+                    }, 60);
+                };
+            }
+
+            // Se mensagens já estiverem no DOM ao carregar, prepare-as
+            function prepareExistingBubbles() {
+                const bubbles = messageContainer.querySelectorAll('.message-bubble');
+                bubbles.forEach(bubble => {
+                    const plainText = bubble.innerText || bubble.textContent || '';
+                    if (plainText.length > 220 && window.innerWidth <= 900) {
+                        bubble.classList.add('collapsed');
+                        attachExpandHint(bubble);
+                    }
+                    bubble.setAttribute('tabindex', '0');
+                    bubble.setAttribute('role', 'button');
+                    bubble.addEventListener('click', () => bubble.classList.toggle('collapsed'));
+                });
+            }
+
+            prepareExistingBubbles();
+
+            // ---------- Sidebar / hamburger improvements ----------
+            const menuToggle = document.getElementById('menuToggle');
+            const sidebar = document.querySelector('.suporte-sidebar');
+
+            // criar overlay para fechar ao clicar fora
+            let overlay = document.querySelector('.sidebar-overlay');
+            if (!overlay) {
+                overlay = document.createElement('div');
+                overlay.className = 'sidebar-overlay';
+                document.body.appendChild(overlay);
+            }
+
+            function openSidebar() {
+                sidebar.classList.add('open');
+                overlay.classList.add('visible');
+                menuToggle.setAttribute('aria-expanded', 'true');
+            }
+            function closeSidebar() {
+                sidebar.classList.remove('open');
+                overlay.classList.remove('visible');
+                menuToggle.setAttribute('aria-expanded', 'false');
+            }
+
+            menuToggle.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (sidebar.classList.contains('open')) closeSidebar();
+                else openSidebar();
+            });
+
+            overlay.addEventListener('click', closeSidebar);
+
+            // fechar sidebar ao redimensionar para desktop
+            window.addEventListener('resize', () => {
+                if (window.innerWidth > 900) {
+                    sidebar.classList.remove('open');
+                    overlay.classList.remove('visible');
+                    menuToggle.setAttribute('aria-expanded', 'false');
+                }
+            });
+
+            // melhorar comportamento do textarea em mobile: rolar input para visibilidade quando focado
+            const chatInput = document.getElementById('chatInput') || document.getElementById('messageInput');
+            if (chatInput) {
+                chatInput.addEventListener('focus', () => {
+                    setTimeout(() => {
+                        chatInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }, 300);
+                });
+            }
+        })();
+
+
+    </script>
+</body>
+</html>

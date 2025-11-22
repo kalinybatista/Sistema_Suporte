@@ -1,0 +1,536 @@
+﻿@{
+    ViewData["Title"] = "Painel do Técnico";
+    Layout = null;
+    var technicianName = Context.Session.GetString("UserName") ?? "Técnico";
+}
+
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Painel do Técnico</title>
+    <link rel="stylesheet" href="~/css/tecnico.css" asp-append-version="true" />
+</head>
+<body>
+    <div class="tecnico-container">
+        <!-- Sidebar -->
+        <aside class="tecnico-sidebar">
+            <div class="tecnico-header">
+                <h1 class="tecnico-title">Painel do Técnico</h1>
+            </div>
+
+            <div class="tecnico-user">
+                <div class="user-name">@technicianName</div>
+            </div>
+
+            <nav class="status-menu">
+                <ul class="status-list">
+                    <li class="status-item">
+                        <a asp-controller="Tecnico" asp-action="Index" class="status-link active">Em Andamento</a>
+                    </li>
+                    <li class="status-item">
+                        <a asp-controller="Tecnico" asp-action="Resolvidos" class="status-link">Resolvidos</a>
+                    </li>
+                </ul>
+            </nav>
+
+            <div class="menu-section">
+                <h3 class="menu-title">Minha conta</h3>
+                <ul class="menu-list">
+                    <li class="menu-item">
+                        <a asp-controller="Account" asp-action="AlterarEmail" class="menu-link">Alterar Email</a>
+                    </li>
+                    <li class="menu-item">
+                        <a asp-controller ="Account" asp-action="AlterarSenha" class="menu-link">Alterar senha</a>
+                    </li>
+                    <li class="menu-item">
+                        <a asp-controller="Account" asp-action="Logout" class="menu-link">Sair</a>
+                    </li>
+                </ul>
+            </div>
+        </aside>
+
+        <!-- Área principal -->
+        <main class="tecnico-main">
+            <div class="section-header">
+                <h2 class="section-title">Chamados em Andamento</h2>
+                <p class="section-subtitle">Gerencie os chamados ativos</p>
+                <span class="connection-status" id="connectionStatus">Conectando...</span>
+            </div>
+
+            <div class="chamados-list" id="activeClients">
+                <div class="empty-state" id="emptyState">
+                    <div class="empty-text">Nenhum cliente conectado no momento</div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal do Chat -->
+    <div class="chat-modal" id="chatModal">
+        <div class="chat-modal-content">
+            <div class="chat-modal-header">
+                <div>
+                    <h3 class="chat-modal-title">Atendimento - <span id="clientName">Cliente</span></h3>
+                    <div class="chat-modal-info" id="chatModalInfo">Conectado agora</div>
+                </div>
+                <button class="chat-modal-close" id="chatModalClose">&times;</button>
+            </div>
+
+            <div class="chat-modal-body">
+                <div class="chat-messages-container" id="chatMessages">
+                    <!-- Mensagens serão carregadas via SignalR -->
+                </div>
+
+                <div class="chat-input-container">
+                    <div class="chat-input-wrapper">
+                        <textarea class="chat-input" id="chatMessageInput" placeholder="Digite sua mensagem..." rows="1"></textarea>
+                        <button class="chat-send-button" id="chatSendButton">Enviar</button>
+                    </div>
+                    <div class="chat-actions">
+                        <button class="chat-action-button" id="markAsResolved">✅ Marcar como Resolvido</button>
+                        <button class="chat-action-button primary" id="closeChat">⏹️ Finalizar Atendimento</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
+    <script>
+        // ✅ DECLARAÇÃO ÚNICA DA CONEXÃO
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl("/chatHub")
+            .build();
+
+        const technicianName = "@technicianName";
+        let isConnected = false;
+        let currentClientId = null;
+
+        // Elementos da UI
+        const activeClients = document.getElementById('activeClients');
+        const emptyState = document.getElementById('emptyState');
+        const connectionStatus = document.getElementById('connectionStatus');
+        const chatModal = document.getElementById('chatModal');
+        const chatMessages = document.getElementById('chatMessages');
+        const messageInput = document.getElementById('chatMessageInput');
+        const sendButton = document.getElementById('chatSendButton');
+        const clientName = document.getElementById('clientName');
+        const chatModalInfo = document.getElementById('chatModalInfo');
+
+        // Conectar como técnico
+        connection.start().then(() => {
+            console.log("Técnico conectado ao SignalR");
+            connectionStatus.textContent = "Conectado";
+            connectionStatus.className = "connection-status connected";
+            isConnected = true;
+
+            connection.invoke("JoinAsTechnician", technicianName);
+        }).catch(err => {
+            console.error("Erro na conexão:", err);
+            connectionStatus.textContent = "Desconectado";
+            connectionStatus.className = "connection-status disconnected";
+        });
+
+        // ✅ RECEBER LISTA DE CLIENTES ATIVOS
+        connection.on("ReceiveActiveClients", (clients) => {
+            updateClientsList(clients);
+        });
+
+        // ✅ NOVO CLIENTE CONECTADO (COM CONVERSATION ID)
+        connection.on("NewClientConnected", (userName, clientId, chamadoId, conversationId) => {
+            addClientToList(clientId, userName, conversationId);
+        });
+
+        // ✅ CLIENTE DESCONECTADO
+        connection.on("ClientDisconnected", (clientId) => {
+            removeClientFromList(clientId);
+            if (currentClientId === clientId) {
+                closeChatModal();
+            }
+        });
+
+        // ✅ RECEBER MENSAGEM DE CLIENTE (COM CONVERSATION ID)
+        connection.on("ReceiveClientMessage", (clientId, userName, message, timestamp, chamadoId, conversationId) => {
+            updateClientWithNewMessage(clientId, userName, message, conversationId);
+
+            if (currentClientId === clientId) {
+                addMessageToChat(userName, message, timestamp, true);
+            }
+        });
+
+        // ✅ RECEBER HISTÓRICO DO CHAT DO CLIENTE
+        connection.on("ReceiveClientChatHistory", (clientId, messages) => {
+            if (currentClientId === clientId) {
+                chatMessages.innerHTML = '';
+                messages.forEach(msg => {
+                    addMessageToChat(msg.userName, msg.message, msg.timestamp, msg.isFromClient);
+                });
+                scrollToBottom();
+            }
+        });
+
+        // ✅ RECEBER CONFIRMAÇÃO DE PRÓPRIA MENSAGEM
+        connection.on("ReceiveOwnMessageToClient", (clientId, message, timestamp) => {
+            if (currentClientId === clientId) {
+                addMessageToChat("Você", message, timestamp, false);
+            }
+        });
+
+        // ✅ RECEBER MENSAGENS DO SISTEMA
+        connection.on("ReceiveSystemMessage", (message) => {
+            showNotification("💬 Sistema", message);
+        });
+
+        // ✅ FUNÇÕES DA UI
+        function updateClientsList(clients) {
+            if (clients.length === 0) {
+                emptyState.style.display = 'block';
+                activeClients.innerHTML = '<div class="empty-state" id="emptyState"><div class="empty-text">Nenhum cliente conectado no momento</div></div>';
+                return;
+            }
+
+            emptyState.style.display = 'none';
+            activeClients.innerHTML = '';
+
+            clients.forEach(client => {
+                addClientToList(client.userId, client.userName, client.conversationId);
+            });
+        }
+
+        function addClientToList(clientId, userName, conversationId) {
+            emptyState.style.display = 'none';
+
+            const clientCard = document.createElement('div');
+            clientCard.className = 'chamado-card';
+            clientCard.dataset.clientId = clientId;
+
+            // ✅ FORMATAR O ID DA CONVERSA COM 3 DÍGITOS
+            const formattedId = conversationId ? conversationId.toString().padStart(3, '0') : '000';
+
+            clientCard.innerHTML = `
+                <div class="chamado-header">
+                    <div class="chamado-id">#${formattedId}</div>
+                    <div class="chamado-status">Em Andamento</div>
+                </div>
+                <div class="chamado-descricao">
+                    Cliente conectado aguardando atendimento
+                </div>
+                <div class="chamado-footer">
+                    <span class="chamado-cliente">${userName}</span>
+                    <span class="chamado-data">Agora</span>
+                </div>
+                <div class="last-message" style="display: none; font-size: 12px; color: #666; margin-top: 8px;"></div>
+            `;
+
+            clientCard.addEventListener('click', () => openChatModal(clientId, userName, conversationId));
+            activeClients.appendChild(clientCard);
+        }
+
+        function removeClientFromList(clientId) {
+            const clientCard = document.querySelector(`[data-client-id="${clientId}"]`);
+            if (clientCard) {
+                clientCard.remove();
+            }
+
+            if (document.querySelectorAll('.chamado-card').length === 0) {
+                emptyState.style.display = 'block';
+            }
+        }
+
+        function updateClientWithNewMessage(clientId, userName, message, conversationId) {
+            const clientCard = document.querySelector(`[data-client-id="${clientId}"]`);
+            if (clientCard) {
+                const lastMessage = clientCard.querySelector('.last-message');
+                lastMessage.textContent = `Última mensagem: ${message.substring(0, 50)}${message.length > 50 ? '...' : ''}`;
+                lastMessage.style.display = 'block';
+
+                // Destacar card com nova mensagem
+                clientCard.style.borderColor = '#007bff';
+                clientCard.style.backgroundColor = '#f8f9fa';
+
+                setTimeout(() => {
+                    clientCard.style.borderColor = '';
+                    clientCard.style.backgroundColor = '';
+                }, 2000);
+            }
+        }
+
+        function openChatModal(clientId, userName, conversationId) {
+            currentClientId = clientId;
+            clientName.textContent = userName;
+
+            // ✅ MOSTRAR ID DA CONVERSA NO MODAL
+            const formattedId = conversationId ? conversationId.toString().padStart(3, '0') : '000';
+            chatModalInfo.textContent = `Conversa #${formattedId} - Conectado ${new Date().toLocaleTimeString()}`;
+
+            // Carregar histórico do chat
+            connection.invoke("RequestClientChatHistory", clientId)
+                .catch(err => console.error("Erro ao carregar histórico:", err));
+
+            chatModal.classList.add('active');
+            messageInput.focus();
+        }
+
+        function closeChatModal() {
+            chatModal.classList.remove('active');
+            currentClientId = null;
+            chatMessages.innerHTML = '';
+            messageInput.value = '';
+        }
+
+        function addMessageToChat(sender, message, timestamp, isFromClient) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `chat-message ${isFromClient ? 'cliente' : 'tecnico'}`;
+
+            const time = new Date(timestamp).toLocaleTimeString('pt-BR', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+
+            messageDiv.innerHTML = `
+                <div class="message-bubble">
+                    <div class="message-content">${escapeHtml(message)}</div>
+                    <div class="message-time">${time}</div>
+                </div>
+            `;
+
+            chatMessages.appendChild(messageDiv);
+            scrollToBottom();
+        }
+
+        function sendMessage() {
+            const message = messageInput.value.trim();
+            if (message && isConnected && currentClientId) {
+                connection.invoke("SendMessageToClient", currentClientId, message)
+                    .catch(err => console.error("Erro ao enviar mensagem:", err));
+
+                messageInput.value = '';
+                messageInput.style.height = 'auto';
+            }
+        }
+
+        function scrollToBottom() {
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function escapeHtml(unsafe) {
+            return unsafe
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        // ✅ FUNÇÃO PARA MOSTRAR NOTIFICAÇÕES
+        function showNotification(titulo, mensagem) {
+            // Criar notificação
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: #4CAF50;
+                color: white;
+                padding: 15px 20px;
+                border-radius: 5px;
+                z-index: 10000;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                max-width: 300px;
+                font-size: 14px;
+            `;
+            notification.innerHTML = `
+                <strong>${titulo}</strong><br>
+                ${mensagem}
+            `;
+            document.body.appendChild(notification);
+
+            // Remover após 5 segundos
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+            }, 5000);
+        }
+
+        // ✅ EVENT LISTENERS CORRETOS
+        sendButton.addEventListener('click', sendMessage);
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        document.getElementById('chatModalClose').addEventListener('click', closeChatModal);
+        chatModal.addEventListener('click', (e) => {
+            if (e.target === chatModal) {
+                closeChatModal();
+            }
+        });
+
+        messageInput.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = (this.scrollHeight) + 'px';
+        });
+
+               // ✅ BOTÃO "MARCAR COMO RESOLVIDO" - CORRIGIDO
+        document.getElementById('markAsResolved').addEventListener('click', () => {
+            if (currentClientId) {
+                const clientName = document.getElementById('clientName').textContent;
+                if (confirm(`Deseja marcar o atendimento com ${clientName} como RESOLVIDO?`)) {
+                    console.log("Enviando comando MarcarComoResolvido para:", currentClientId);
+
+                    connection.invoke("MarcarComoResolvido", currentClientId)
+                        .then(() => {
+                            console.log("✅ Comando MarcarComoResolvido executado com sucesso");
+                            showNotification("✅ Resolvido", `Atendimento com ${clientName} marcado como resolvido!`);
+                        })
+                        .catch(err => {
+                            console.error("❌ Erro ao marcar como resolvido:", err);
+                            alert("Erro ao marcar como resolvido. Tente novamente.");
+                        });
+                }
+            } else {
+                alert("Nenhum cliente selecionado.");
+            }
+        });
+
+        // ✅ BOTÃO "FINALIZAR ATENDIMENTO" - CORRIGIDO
+        document.getElementById('closeChat').addEventListener('click', () => {
+            if (currentClientId) {
+                const clientName = document.getElementById('clientName').textContent;
+                if (confirm(`Deseja FINALIZAR o atendimento com ${clientName}? O cliente será desconectado.`)) {
+                    console.log("Enviando comando FinalizarAtendimento para:", currentClientId);
+
+                    connection.invoke("FinalizarAtendimento", currentClientId, "Atendimento finalizado pelo técnico")
+                        .then(() => {
+                            console.log("✅ Comando FinalizarAtendimento executado com sucesso");
+                            showNotification("⏹️ Finalizado", `Atendimento com ${clientName} finalizado!`);
+
+                            // Fechar modal e remover da lista
+                            closeChatModal();
+                            removeClientFromList(currentClientId);
+                        })
+                        .catch(err => {
+                            console.error("❌ Erro ao finalizar atendimento:", err);
+                            alert("Erro ao finalizar atendimento. Tente novamente. Detalhes: " + err.message);
+                        });
+                }
+            } else {
+                alert("Nenhum cliente selecionado.");
+            }
+        });
+
+        // ✅ RECEBER MENSAGENS DO SISTEMA DO HUB
+        connection.on("ReceiveSystemMessage", (message) => {
+            console.log("📢 Mensagem do sistema:", message);
+            showNotification("💬 Sistema", message);
+        });
+
+        // ✅ RECONEXÃO AUTOMÁTICA
+        connection.onclose(() => {
+            isConnected = false;
+            connectionStatus.textContent = "Desconectado";
+            connectionStatus.className = "connection-status disconnected";
+
+            setTimeout(() => {
+                connection.start().catch(err => console.error("Erro na reconexão:", err));
+            }, 5000);
+        });
+    </script>
+
+    <style>
+        .connection-status {
+            padding: 6px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 15px;
+        }
+
+            .connection-status.connected {
+                background-color: #d4edda;
+                color: #155724;
+                border: 1px solid #c3e6cb;
+            }
+
+            .connection-status.disconnected {
+                background-color: #f8d7da;
+                color: #721c24;
+                border: 1px solid #f5c6cb;
+            }
+
+        .last-message {
+            font-size: 12px;
+            color: #666;
+            margin-top: 8px;
+            font-style: italic;
+            background-color: #f8f9fa;
+            padding: 4px 8px;
+            border-radius: 4px;
+            border-left: 3px solid #007bff;
+        }
+
+        /* ✅ ESTILOS PARA OS IDs NUMÉRICOS */
+        .chamado-id {
+            font-weight: 700;
+            font-size: 16px;
+            color: #000;
+            background-color: #e9ecef;
+            padding: 2px 8px;
+            border-radius: 4px;
+            display: inline-block;
+        }
+
+        .chat-modal-info {
+            font-size: 14px;
+            color: #666;
+            margin-top: 5px;
+            font-style: italic;
+        }
+
+        /* ✅ ESTILOS PARA OS BOTÕES DE AÇÃO */
+        .chat-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        .chat-action-button {
+            padding: 12px 20px;
+            border: 1px solid #ddd;
+            background-color: #f8f9fa;
+            color: #333;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 14px;
+            font-weight: 500;
+            flex: 1;
+            min-width: 160px;
+            text-align: center;
+        }
+
+            .chat-action-button:hover {
+                background-color: #e9ecef;
+                transform: translateY(-1px);
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+
+            .chat-action-button.primary {
+                background-color: #dc3545;
+                color: white;
+                border-color: #dc3545;
+            }
+
+                .chat-action-button.primary:hover {
+                    background-color: #c82333;
+                    border-color: #bd2130;
+                }
+    </style>
+</body>
+</html>
